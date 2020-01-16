@@ -2,6 +2,8 @@
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from zeep import Client
+from wallet.models import Order
+from django.contrib.auth.models import User
 
 client = Client('http://payment.farafekr.co/index.php/payment/wsdl')
 MERCHANT = '28d773c437ac'
@@ -10,9 +12,12 @@ description = "توضیحات مربوط به تراکنش را در این قس
 CallbackURL = 'http://185.211.58.140:5000/verify/'
 
 def send_request(request):
-    order_id = 123456
+    order = Order.objects.create(user=request.user, basket_id = 1, ip='192.168.1.1', amount=amount)
+    order_id = order.id
     au = client.service.request(MERCHANT, amount, CallbackURL, order_id, description)
     if len(au) >= 8:
+        order.bankau = au
+        print(order.save())
         return redirect('http://payment.farafekr.co/index.php/paymentgateway/?au=' + str(au))
     else:
         return HttpResponse('Error code: ' + str(au))
